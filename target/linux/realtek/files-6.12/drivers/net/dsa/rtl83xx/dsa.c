@@ -1134,36 +1134,52 @@ static int rtl83xx_set_mac_eee(struct dsa_switch *ds, int port, struct ethtool_k
 	return 0;
 }
 
-static int rtl83xx_get_mac_eee(struct dsa_switch *ds, int port, struct ethtool_keee *e)
+static int rtldsa_get_mac_eee(struct dsa_switch *ds, int port, struct ethtool_keee *eee)
 {
-	struct rtl838x_switch_priv *priv = ds->priv;
+	int max, reg = 0;
 
-	e->supported = SUPPORTED_100baseT_Full | SUPPORTED_1000baseT_Full;
+	/*
+	 * Until kernel 6.6 the Realtek device specific get_mac_eee() functions filled many
+	 * fields of the eee structure. Upstream will replace it with a simple boolean
+	 * support_eee() getter starting from 6.14. That only checks if a port can provide
+	 * EEE or not. In the best case it can be replaced with dsa_supports_eee() in the
+	 * future. For now align to other upstream DSA drivers.
+	 */
 
-	priv->r->eee_port_ability(priv, e, port);
+	switch (soc_info.family) {
+	case RTL8380_FAMILY_ID:
+		reg = RTL838X_MAC_EEE_ABLTY;
+		max = 27;
+		break;
+	case RTL8390_FAMILY_ID:
+		reg = RTL839X_MAC_EEE_ABLTY;
+		max = 51;
+		break;
+	case RTL9300_FAMILY_ID:
+		reg = RTL930X_MAC_EEE_ABLTY;
+		max = 28;
+		break;
+	case RTL9310_FAMILY_ID:
+		reg = RTL931X_MAC_EEE_ABLTY;
+		max = 55;
+		break;
+	}
 
-	e->eee_enabled = priv->ports[port].eee_enabled;
+	if (WARN_ONCE((!reg) || (port > max), "tried to read port %d MAC EEE status\n", port))
+		return -EOPNOTSUPP;
 
-	e->eee_active = !!(e->advertised & e->lp_advertised);
+	if (port >= 32) {
+		port -= 32;
+		reg += 4;
+	}
 
-	return 0;
-}
+	/* Read status twice */
+	sw_r32(reg);
 
-static int rtl93xx_get_mac_eee(struct dsa_switch *ds, int port, struct ethtool_keee *e)
-{
-	struct rtl838x_switch_priv *priv = ds->priv;
-
-	e->supported = SUPPORTED_100baseT_Full |
-	               SUPPORTED_1000baseT_Full |
-	               SUPPORTED_2500baseX_Full;
-
-	priv->r->eee_port_ability(priv, e, port);
-
-	e->eee_enabled = priv->ports[port].eee_enabled;
-
-	e->eee_active = !!(e->advertised & e->lp_advertised);
-
-	return 0;
+	if (sw_r32(reg) & BIT(port))
+		return 0;
+	else
+		return -EOPNOTSUPP;
 }
 
 static int rtl83xx_set_ageing_time(struct dsa_switch *ds, unsigned int msec)
@@ -2234,7 +2250,7 @@ const struct dsa_switch_ops rtl83xx_switch_ops = {
 	.port_enable		= rtl83xx_port_enable,
 	.port_disable		= rtl83xx_port_disable,
 
-	.get_mac_eee		= rtl83xx_get_mac_eee,
+	.get_mac_eee		= rtldsa_get_mac_eee,
 	.set_mac_eee		= rtl83xx_set_mac_eee,
 
 	.set_ageing_time	= rtl83xx_set_ageing_time,
@@ -2292,7 +2308,7 @@ const struct dsa_switch_ops rtl930x_switch_ops = {
 	.port_enable		= rtl83xx_port_enable,
 	.port_disable		= rtl83xx_port_disable,
 
-	.get_mac_eee		= rtl93xx_get_mac_eee,
+	.get_mac_eee		= rtldsa_get_mac_eee,
 	.set_mac_eee		= rtl83xx_set_mac_eee,
 
 	.set_ageing_time	= rtl83xx_set_ageing_time,
