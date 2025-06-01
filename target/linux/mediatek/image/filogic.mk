@@ -1614,7 +1614,7 @@ define Device/wavlink_wl-wn586x3
 endef
 TARGET_DEVICES += wavlink_wl-wn586x3
 
-define Device/wavlink_wl-wn586x3-bAdd commentMore actions
+define Device/wavlink_wl-wn586x3-b
   DEVICE_VENDOR := WAVLINK
   DEVICE_MODEL := WL-WN586X3-B
   DEVICE_DTS := mt7981b-wavlink-wl-wn586x3-b
