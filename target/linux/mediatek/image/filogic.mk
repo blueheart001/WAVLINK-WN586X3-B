@@ -1614,6 +1614,23 @@ define Device/wavlink_wl-wn586x3
 endef
 TARGET_DEVICES += wavlink_wl-wn586x3
 
+define Device/wavlink_wl-wn586x3-bAdd commentMore actions
+  DEVICE_VENDOR := WAVLINK
+  DEVICE_MODEL := WL-WN586X3-B
+  DEVICE_DTS := mt7981b-wavlink-wl-wn586x3-b
+  DEVICE_DTS_DIR := ../dts
+  SUPPORTED_DEVICES += mediatek,mt7981-spim-snand-rfb
+  DEVICE_DTS_LOADADDR := 0x47000000
+  DEVICE_PACKAGES := kmod-mt7915e kmod-mt7981-firmware mt7981-wo-firmware
+  UBINIZE_OPTS := -E 5
+  BLOCKSIZE := 128k
+  PAGESIZE := 2048
+  IMAGE_SIZE := 65536k
+  KERNEL_IN_UBI := 1Add commentMore actions
+  IMAGE/sysupgrade.bin := sysupgrade-tar | append-metadata
+endef
+TARGET_DEVICES += wavlink_wl-wn586x3-b
+
 define Device/wavlink_wl-wn573hx3
   DEVICE_VENDOR := WAVLINK
   DEVICE_MODEL := WL-WN573HX3
